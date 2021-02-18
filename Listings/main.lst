@@ -1,0 +1,116 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              02/07/2021 07:32:43 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\MDK\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          
+   2          #include <reg51.h>
+   3          #include "smg.h"
+   4          #include "led.h"
+   5          #include "uart.h"
+   6          #include "ds18b20.h"
+   7          #include "timer.h"
+   8          
+   9          #include <stdio.h>
+  10          
+  11          unsigned char buf[15] = {0};
+  12          
+  13          void main()
+  14          {
+  15   1          unsigned char ret = 0;
+  16   1          unsigned char shi_z = 0,ge_z = 0,shi_f = 0,ge_f = 0;
+  17   1          float tempValue = 0.0;
+  18   1          unsigned char temp = 0;
+  19   1      
+  20   1          unsigned char flag = 0;
+  21   1          
+  22   1          smg_init();
+  23   1          timer0_init();
+  24   1          uart_init();
+  25   1          uart_sendStr("this is temprature meter!\r\n");
+  26   1      
+  27   1          while(1)
+  28   1          {
+  29   2              if(flag == 0)
+  30   2              {
+  31   3                  flag = 1;
+  32   3                  ret = ds18b20_startTemConv();
+  33   3                  if(ret == 0xff)   //起动转换失败，这一部分一定要写，否则flag一直为1，将无法�
+             -��次进行转换
+  34   3                    flag = 0;
+  35   3              }
+  36   2              
+  37   2              if(ds18b20_ok == 1)
+  38   2              {
+  39   3                  ds18b20_ok = 0;
+  40   3                  led_toggleNumber(1);                  //转换一次翻转一下灯，用于表示系统运行
+  41   3                  ret = ds18b20_readTemp(&tempValue) ;
+  42   3                  if(ret == 0)
+  43   3                  {   
+  44   4                      if(tempValue > 0)
+  45   4                      {
+  46   5                        temp = (unsigned char )tempValue;
+  47   5                        sprintf(buf,"temp:%2.2f\r\n",tempValue);
+  48   5                      }
+  49   4                      else
+  50   4                      {
+  51   5                        temp = -(unsigned char )tempValue;
+  52   5                        sprintf(buf,"temp:-%2.2f\r\n",tempValue);
+  53   5                      }
+C51 COMPILER V9.56.0.0   MAIN                                                              02/07/2021 07:32:43 PAGE 2   
+
+  54   4                      
+  55   4                      //分离整数部分的十位和个位
+  56   4                      shi_z = temp/10;
+  57   4                      ge_z = temp%10;
+  58   4                      
+  59   4                      //获取到小数部分，如：12.34，得到34
+  60   4                      if(tempValue > 0)
+  61   4                        temp = (unsigned char)((tempValue - temp)*100);
+  62   4                      else
+  63   4                        temp = (unsigned char)((-tempValue - temp)*100);
+  64   4                      
+  65   4                      //分离小数部分的十位和个位
+  66   4                      shi_f = temp/10;
+  67   4                      ge_f = temp%10;
+  68   4                  } 
+  69   3                  
+  70   3                  flag = 0;               //允许下一次转换
+  71   3                  
+  72   3                                  
+  73   3                  uart_sendStr(buf);      //温度每转换一次，串口输出一次
+  74   3              }
+  75   2              
+  76   2              //刷新显示
+  77   2        
+  78   2              if(tempValue > 0 )
+  79   2                smg_dispNumber(18,7);     //温度为正，不显示符号位
+  80   2              else
+  81   2                smg_dispNumber(17,7);     //温度为负，显示"-"
+  82   2              smg_dispNumber(shi_z,6);
+  83   2              smg_dispNumber(ge_z,5);
+  84   2              smg_dispNumber(16,5);               //叠加小数点
+  85   2              smg_dispNumber(shi_f,4);
+  86   2              smg_dispNumber(ge_f,3);
+  87   2          }
+  88   1      
+  89   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    393    ----
+   CONSTANT SIZE    =     55    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     15      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
